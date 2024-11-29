@@ -17,3 +17,5 @@ Cargo.lock
 
 inputs/*.txt
 .vscode
+
+.direnv

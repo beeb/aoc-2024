@@ -148,7 +148,7 @@ fn download_input(day: u32) -> Result<()> {
 
     let text = response.text().context("decoding response body as text")?;
     let path = format!("inputs/day{day:02}.txt");
-    fs::write(&path, text).context("writing input to file")?;
+    fs::write(&path, text.trim_end_matches('\n')).context("writing input to file")?;
     println!("Successfully downloaded input to {}", &path);
     Ok(())
 }
