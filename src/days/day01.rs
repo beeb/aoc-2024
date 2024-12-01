@@ -9,6 +9,7 @@ use crate::days::Day;
 
 pub struct Day01;
 
+/// The two columns of the input file parsed as integers
 pub struct Numbers {
     a: Vec<i32>,
     b: Vec<i32>,
@@ -22,13 +23,14 @@ impl Day for Day01 {
     type Input = Numbers;
 
     fn parser(input: &mut &str) -> PResult<Self::Input> {
-        let lines: Vec<(i32, i32)> = separated(0.., parse_line, newline).parse_next(input)?;
-        let (a, b) = lines.iter().copied().unzip();
+        let lines: Vec<_> = separated(0.., parse_line, newline).parse_next(input)?;
+        let (a, b) = lines.into_iter().unzip();
         Ok(Numbers { a, b })
     }
 
     type Output1 = usize;
 
+    /// Part 1 took 29.48us
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .a
@@ -41,6 +43,7 @@ impl Day for Day01 {
 
     type Output2 = usize;
 
+    /// Part 2 took 46.69us
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let counts = input.b.iter().counts();
         input
