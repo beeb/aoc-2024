@@ -23,7 +23,7 @@ impl Day for Day01 {
     type Input = Numbers;
 
     fn parser(input: &mut &str) -> PResult<Self::Input> {
-        let lines: Vec<_> = separated(0.., parse_line, newline).parse_next(input)?;
+        let lines: Vec<_> = separated(1.., parse_line, newline).parse_next(input)?;
         let (a, b) = lines.into_iter().unzip();
         Ok(Numbers { a, b })
     }

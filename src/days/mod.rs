@@ -53,14 +53,15 @@ pub trait Day {
 
     #[allow(clippy::cast_precision_loss)]
     fn run_day(path: impl AsRef<Path>) -> Result<()> {
+        let before_parsing = Instant::now();
         let input = Self::parse_file(path)?;
-
-        let before1 = Instant::now();
+        println!("Parsing took {:?}", before_parsing.elapsed());
+        let before_part1 = Instant::now();
         println!("Part 1: {}", Self::part_1(&input));
-        println!("Part 1 took {:?}", before1.elapsed());
-        let before2 = Instant::now();
+        println!("Part 1 took {:?}", before_part1.elapsed());
+        let before_part2 = Instant::now();
         println!("Part 2: {}", Self::part_2(&input));
-        println!("Part 2 took {:?}", before2.elapsed());
+        println!("Part 2 took {:?}", before_part2.elapsed());
         Ok(())
     }
 }
