@@ -11,11 +11,11 @@ pub struct Day01;
 
 /// The two columns of the input file parsed as integers
 pub struct Numbers {
-    a: Vec<i32>,
-    b: Vec<i32>,
+    a: Vec<u32>,
+    b: Vec<u32>,
 }
 
-fn parse_line(input: &mut &str) -> PResult<(i32, i32)> {
+fn parse_line(input: &mut &str) -> PResult<(u32, u32)> {
     separated_pair(digit1.parse_to(), space1, digit1.parse_to()).parse_next(input)
 }
 
@@ -37,7 +37,7 @@ impl Day for Day01 {
             .iter()
             .sorted_unstable()
             .zip(input.b.iter().sorted_unstable())
-            .map(|(a, b)| (a - b).unsigned_abs() as usize)
+            .map(|(a, b)| a.abs_diff(*b) as usize)
             .sum()
     }
 
