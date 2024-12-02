@@ -30,7 +30,7 @@ impl Day for Day01 {
 
     type Output1 = usize;
 
-    /// Part 1 took 29.48us
+    /// Part 1 took 20.008us
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .a
@@ -43,7 +43,7 @@ impl Day for Day01 {
 
     type Output2 = usize;
 
-    /// Part 2 took 46.69us
+    /// Part 2 took 36.35us
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let counts = input.b.iter().counts();
         input
