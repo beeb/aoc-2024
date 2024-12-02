@@ -2,7 +2,7 @@ use itertools::Itertools;
 use winnow::{
     ascii::{digit1, newline, space1},
     combinator::{separated, separated_pair},
-    PResult, Parser,
+    PResult, Parser as _,
 };
 
 use crate::days::Day;
