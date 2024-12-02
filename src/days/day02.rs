@@ -43,7 +43,7 @@ impl Diffs {
     }
 }
 
-fn parse_line(input: &mut &str) -> PResult<Report> {
+fn parse_report(input: &mut &str) -> PResult<Report> {
     let values: Vec<_> = separated(1.., digit1.parse_to::<i16>(), ' ').parse_next(input)?;
     Ok(Report(values))
 }
@@ -52,7 +52,7 @@ impl Day for Day02 {
     type Input = Vec<Report>;
 
     fn parser(input: &mut &str) -> PResult<Self::Input> {
-        separated(1.., parse_line, line_ending).parse_next(input)
+        separated(1.., parse_report, line_ending).parse_next(input)
     }
 
     type Output1 = usize;
