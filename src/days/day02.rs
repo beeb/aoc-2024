@@ -33,11 +33,11 @@ impl Report {
 }
 
 impl Diffs {
-    /// Whether a sequence of differences all match the criterion for an increasing Report
+    /// Whether a sequence of differences matches the criterion for an increasing Report
     fn is_increasing(&self) -> bool {
         self.0.iter().all(|v| (1..=3).contains(v))
     }
-    /// Whether a sequence of differences all match the criterion for a decreasing Report
+    /// Whether a sequence of differences matches the criterion for a decreasing Report
     fn is_decreasing(&self) -> bool {
         self.0.iter().all(|v| (-3..=-1).contains(v))
     }
