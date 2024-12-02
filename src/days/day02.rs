@@ -13,9 +13,12 @@ pub struct Report(Vec<i16>);
 pub struct Diffs(Vec<i16>);
 
 impl Report {
+    /// The sequence of differences between an item and it's predecessor
     fn diffs(&self) -> Diffs {
         Diffs(self.0.iter().tuple_windows().map(|(a, b)| b - a).collect())
     }
+
+    /// All the diff sequences with one item removed each time
     fn all_diffs(&self) -> Vec<Diffs> {
         self.0
             .iter()
@@ -30,9 +33,11 @@ impl Report {
 }
 
 impl Diffs {
+    /// Whether a sequence of differences all match the criterion for an increasing Report
     fn is_increasing(&self) -> bool {
         self.0.iter().all(|v| (1..=3).contains(v))
     }
+    /// Whether a sequence of differences all match the criterion for a decreasing Report
     fn is_decreasing(&self) -> bool {
         self.0.iter().all(|v| (-3..=-1).contains(v))
     }
