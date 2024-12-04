@@ -33,14 +33,20 @@ pub struct Grid {
 }
 
 impl Grid {
-    fn is_letter(&self, x: isize, y: isize, letter: &char) -> Option<bool> {
+    fn get_letter(&self, x: isize, y: isize) -> Option<&char> {
         if x < 0 || y < 0 {
             return None;
         }
         self.rows
             .get(y as usize)
             .and_then(|row| row.cells.get(x as usize))
-            .map(|cell| cell == letter)
+    }
+
+    fn is_letter(&self, x: isize, y: isize, letter: &char) -> Option<bool> {
+        if x < 0 || y < 0 {
+            return None;
+        }
+        self.get_letter(x, y).map(|cell| cell == letter)
     }
 
     fn search_dir(&self, col: isize, row: isize, dir: &[isize; 2]) -> bool {
@@ -51,6 +57,28 @@ impl Grid {
                 continue;
             }
             return false;
+        }
+        true
+    }
+
+    fn search_cross(&self, col: isize, row: isize) -> bool {
+        match (
+            self.get_letter(col - 1, row - 1),
+            self.get_letter(col + 1, row + 1),
+        ) {
+            (Some('M'), Some('S')) | (Some('S'), Some('M')) => {}
+            _ => {
+                return false;
+            }
+        }
+        match (
+            self.get_letter(col + 1, row - 1),
+            self.get_letter(col - 1, row + 1),
+        ) {
+            (Some('M'), Some('S')) | (Some('S'), Some('M')) => {}
+            _ => {
+                return false;
+            }
         }
         true
     }
@@ -85,7 +113,17 @@ impl Day for Day04 {
 
     type Output2 = usize;
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        unimplemented!("part_2")
+    fn part_2(grid: &Self::Input) -> Self::Output2 {
+        let mut count = 0;
+        for y in 0..GRID_SIZE {
+            for x in 0..GRID_SIZE {
+                if let Some(true) = grid.is_letter(x, y, &'A') {
+                    if grid.search_cross(x, y) {
+                        count += 1;
+                    }
+                }
+            }
+        }
+        count
     }
 }
