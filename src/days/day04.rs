@@ -91,6 +91,7 @@ fn parse_row(input: &mut &str) -> PResult<Row> {
 impl Day for Day04 {
     type Input = Grid;
 
+    /// Parser took 119.7us
     fn parser(input: &mut &str) -> PResult<Self::Input> {
         let rows = separated(1.., parse_row, line_ending).parse_next(input)?;
         Ok(Grid { rows })
@@ -98,6 +99,7 @@ impl Day for Day04 {
 
     type Output1 = usize;
 
+    /// Part 1 took 322.3us
     fn part_1(grid: &Self::Input) -> Self::Output1 {
         let mut count = 0;
         // find a grid cell which contains the first letter of the word, and then search in all directions
@@ -113,6 +115,7 @@ impl Day for Day04 {
 
     type Output2 = usize;
 
+    /// Part 2 took 115.8us
     fn part_2(grid: &Self::Input) -> Self::Output2 {
         let mut count = 0;
         // find a grid cell which contains the 'A' cross center, then search neighboring cells for the right letters
