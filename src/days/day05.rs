@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, collections::HashSet as StdHashSet};
 
 use winnow::{
     ascii::{digit1, line_ending},
@@ -6,7 +6,9 @@ use winnow::{
     PResult, Parser as _,
 };
 
-use crate::days::{utils::MyHashSet, Day};
+use crate::days::Day;
+
+pub type HashSet<T> = StdHashSet<T, ahash::RandomState>;
 
 pub struct Day05;
 
@@ -19,7 +21,7 @@ pub struct Update {
 /// The puzzle input, consisting of a list of rules and a list of updates
 #[derive(Debug)]
 pub struct Puzzle {
-    rules: MyHashSet<(u8, u8)>,
+    rules: HashSet<(u8, u8)>,
     updates: Vec<Update>,
 }
 
@@ -29,7 +31,7 @@ fn parse_rule(input: &mut &str) -> PResult<(u8, u8)> {
 }
 
 /// Parse all the rules into a hashset of (first, second) page tuples
-fn parse_rules(input: &mut &str) -> PResult<MyHashSet<(u8, u8)>> {
+fn parse_rules(input: &mut &str) -> PResult<HashSet<(u8, u8)>> {
     separated(1.., parse_rule, line_ending).parse_next(input)
 }
 
@@ -47,7 +49,7 @@ fn parse_updates(input: &mut &str) -> PResult<Vec<Update>> {
 /// Compare function for two page numbers
 ///
 /// This function uses the rules hashset to determine if the ordering is ok or not.
-fn compare_order(a: &u8, b: &u8, rules: &MyHashSet<(u8, u8)>) -> Ordering {
+fn compare_order(a: &u8, b: &u8, rules: &HashSet<(u8, u8)>) -> Ordering {
     if !rules.contains(&(*a, *b)) {
         Ordering::Greater // a should be after b
     } else {
