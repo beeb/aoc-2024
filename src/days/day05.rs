@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashSet};
+use std::cmp::Ordering;
 
 use winnow::{
     ascii::{digit1, line_ending},
@@ -6,7 +6,7 @@ use winnow::{
     PResult, Parser as _,
 };
 
-use crate::days::Day;
+use crate::days::{utils::MyHashSet, Day};
 
 pub struct Day05;
 
@@ -19,7 +19,7 @@ pub struct Update {
 /// The puzzle input, consisting of a list of rules and a list of updates
 #[derive(Debug)]
 pub struct Puzzle {
-    rules: HashSet<(u8, u8)>,
+    rules: MyHashSet<(u8, u8)>,
     updates: Vec<Update>,
 }
 
@@ -29,7 +29,7 @@ fn parse_rule(input: &mut &str) -> PResult<(u8, u8)> {
 }
 
 /// Parse all the rules into a hashset of (first, second) page tuples
-fn parse_rules(input: &mut &str) -> PResult<HashSet<(u8, u8)>> {
+fn parse_rules(input: &mut &str) -> PResult<MyHashSet<(u8, u8)>> {
     separated(1.., parse_rule, line_ending).parse_next(input)
 }
 
@@ -47,7 +47,7 @@ fn parse_updates(input: &mut &str) -> PResult<Vec<Update>> {
 /// Compare function for two page numbers
 ///
 /// This function uses the rules hashset to determine if the ordering is ok or not.
-fn compare_order(a: &u8, b: &u8, rules: &HashSet<(u8, u8)>) -> Ordering {
+fn compare_order(a: &u8, b: &u8, rules: &MyHashSet<(u8, u8)>) -> Ordering {
     if !rules.contains(&(*a, *b)) {
         Ordering::Greater // a should be after b
     } else {
@@ -58,7 +58,7 @@ fn compare_order(a: &u8, b: &u8, rules: &HashSet<(u8, u8)>) -> Ordering {
 impl Day for Day05 {
     type Input = Puzzle;
 
-    /// Parsing took 120.15us
+    /// Parsing took 91.3us
     fn parser(input: &mut &str) -> PResult<Self::Input> {
         let (rules, updates) =
             separated_pair(parse_rules, (line_ending, line_ending), parse_updates)
@@ -68,7 +68,7 @@ impl Day for Day05 {
 
     type Output1 = usize;
 
-    /// Part 1 took 16.9us
+    /// Part 1 took 6.6us
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .updates
@@ -84,7 +84,7 @@ impl Day for Day05 {
 
     type Output2 = usize;
 
-    /// Part 2 took 102.8us
+    /// Part 2 took 49.5us
     fn part_2(input: &Self::Input) -> Self::Output2 {
         input
             .updates
