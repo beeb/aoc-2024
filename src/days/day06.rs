@@ -94,6 +94,8 @@ impl State {
     }
 
     /// Register that some coordinate (`x`, `y`) was visited by the guard while pointing in direction `dir`
+    ///
+    /// Returns `true` if the tile was not already visited while pointing in this direction, `false` if already visited
     fn register_visited(&mut self, x: usize, y: usize, dir: Direction) -> bool {
         if let Some(list) = self.visited.get_mut(&(x, y)) {
             if !list.contains(&dir) {
