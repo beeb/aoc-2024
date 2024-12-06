@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashSet as StdHashSet};
+use std::cmp::Ordering;
 
 use winnow::{
     ascii::{digit1, line_ending},
@@ -8,7 +8,7 @@ use winnow::{
 
 use crate::days::Day;
 
-pub type HashSet<T> = StdHashSet<T, ahash::RandomState>;
+pub type HashSet<T> = std::collections::HashSet<T, ahash::RandomState>;
 
 pub struct Day05;
 
