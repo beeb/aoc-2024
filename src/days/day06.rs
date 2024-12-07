@@ -1,3 +1,4 @@
+use enumflags2::{bitflags, BitFlags};
 use rayon::iter::{ParallelBridge, ParallelIterator as _};
 use winnow::{
     ascii::line_ending,
@@ -16,6 +17,8 @@ pub type HashMap<K, V> = std::collections::HashMap<K, V, ahash::RandomState>;
 pub struct Day06;
 
 /// The possible directions for the guard
+#[bitflags]
+#[repr(u8)]
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum Direction {
     #[default]
@@ -51,7 +54,7 @@ pub struct State {
     /// A list of all obstacle coordinates
     obstacles: HashSet<(usize, usize)>,
     /// A list of visited locations and in which directions the guard was pointing as they were visited
-    visited: HashMap<(usize, usize), Vec<Direction>>,
+    visited: HashMap<(usize, usize), BitFlags<Direction>>,
     /// The initial position of the guard
     init_pos: (usize, usize),
     /// The guard's current position and direction
@@ -97,15 +100,15 @@ impl State {
     ///
     /// Returns `true` if the tile was not already visited while pointing in this direction, `false` if already visited
     fn register_visited(&mut self, x: usize, y: usize, dir: Direction) -> bool {
-        if let Some(list) = self.visited.get_mut(&(x, y)) {
-            if !list.contains(&dir) {
-                list.push(dir);
+        if let Some(dirs) = self.visited.get_mut(&(x, y)) {
+            if !dirs.contains(dir) {
+                *dirs |= dir;
                 true
             } else {
                 false
             }
         } else {
-            self.visited.insert((x, y), vec![dir]);
+            self.visited.insert((x, y), dir.into());
             true
         }
     }
@@ -213,7 +216,7 @@ impl Day for Day06 {
 
     type Output1 = usize;
 
-    /// Part 1 took 390.5us
+    /// Part 1 took 255.44us
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let mut state = input.clone();
         // advance the guard until it exits the area
@@ -224,7 +227,7 @@ impl Day for Day06 {
 
     type Output2 = usize;
 
-    /// Part 2 took 71.01ms
+    /// Part 2 took 29.03ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let mut state = input.clone();
         // advance the guard until it exits the area to update the list of visited tiles
