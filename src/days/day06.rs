@@ -11,7 +11,6 @@ use crate::days::Day;
 
 const GRID_SIZE: usize = 130;
 
-pub type HashSet<T> = std::collections::HashSet<T, ahash::RandomState>;
 pub type HashMap<K, V> = std::collections::HashMap<K, V, ahash::RandomState>;
 
 pub struct Day06;
@@ -49,16 +48,30 @@ pub struct Guard {
 }
 
 /// The state object, with the grid, guard and list of visited tiles
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct State {
     /// A list of all obstacle coordinates
-    obstacles: HashSet<(usize, usize)>,
+    ///
+    /// Using a sparse grid is faster than a HashSet due to the overhead of hashing values. Since we have few cols and
+    /// rows, the memory usage is low.
+    obstacles: Vec<Vec<bool>>,
     /// A list of visited locations and in which directions the guard was pointing as they were visited
     visited: HashMap<(usize, usize), BitFlags<Direction>>,
     /// The initial position of the guard
     init_pos: (usize, usize),
     /// The guard's current position and direction
     guard: Guard,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            obstacles: vec![vec![false; GRID_SIZE]; GRID_SIZE],
+            visited: Default::default(),
+            init_pos: Default::default(),
+            guard: Default::default(),
+        }
+    }
 }
 
 impl State {
@@ -120,7 +133,7 @@ impl State {
     fn advance(&mut self) -> Option<bool> {
         if let Some((new_x, new_y)) = self.point_in_dir(self.guard.x, self.guard.y, self.guard.dir)
         {
-            if self.obstacles.contains(&(new_x, new_y)) {
+            if self.obstacles[new_y][new_x] {
                 self.guard.dir = self.guard.dir.turn_right();
                 if !self.register_visited(self.guard.x, self.guard.y, self.guard.dir) {
                     return None; // loop
@@ -140,7 +153,7 @@ impl State {
     /// Checks whether the guard would enter a loop if an obstacle is added at position `extra_obstacle`
     fn loops_with_obstacle(&self, extra_obstacle: (usize, usize)) -> bool {
         let mut state = self.clone();
-        state.obstacles.insert(extra_obstacle);
+        state.obstacles[extra_obstacle.1][extra_obstacle.0] = true;
         loop {
             match state.advance() {
                 Some(true) => {}
@@ -166,7 +179,7 @@ impl Day for Day06 {
 
     /// Parse the puzzle input into a [`State`]
     ///
-    /// Parsing took 110.18us
+    /// Parsing took 98.022us
     fn parser(input: &mut &str) -> PResult<Self::Input> {
         let mut puzzle = State::default();
         let lines: Vec<_> = separated(1.., parse_line, line_ending).parse_next(input)?;
@@ -174,7 +187,7 @@ impl Day for Day06 {
             for (x, cell) in line {
                 match cell {
                     '#' => {
-                        puzzle.obstacles.insert((x, y));
+                        puzzle.obstacles[y][x] = true;
                     }
                     '^' => {
                         puzzle.guard = Guard {
@@ -216,7 +229,7 @@ impl Day for Day06 {
 
     type Output1 = usize;
 
-    /// Part 1 took 255.44us
+    /// Part 1 took 199.86us
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let mut state = input.clone();
         // advance the guard until it exits the area
@@ -227,7 +240,7 @@ impl Day for Day06 {
 
     type Output2 = usize;
 
-    /// Part 2 took 29.03ms
+    /// Part 2 took 25.43ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let mut state = input.clone();
         // advance the guard until it exits the area to update the list of visited tiles
