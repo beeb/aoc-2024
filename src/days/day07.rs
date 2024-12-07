@@ -22,16 +22,19 @@ pub enum Operator {
     Concat,
 }
 
+/// Parse a list of operands separated by spaces
 fn parse_operands(input: &mut &str) -> PResult<Vec<u64>> {
     separated(1.., digit1.parse_to::<u64>(), ' ').parse_next(input)
 }
 
+/// Parse a line which consists of a result and operands separated by a colon and space
 fn parse_line(input: &mut &str) -> PResult<Line> {
     let (result, operands) =
         separated_pair(digit1.parse_to::<u64>(), ": ", parse_operands).parse_next(input)?;
     Ok(Line { result, operands })
 }
 
+/// Try to combine `operands` with any combination of `operators` and check it the result matches `result`
 fn try_operators(result: u64, operands: &[u64], operators: &[Operator]) -> bool {
     let num_operators = operands.len() - 1;
     let ops_comb = (0..num_operators)
@@ -66,6 +69,7 @@ impl Day for Day07 {
 
     type Output1 = u64;
 
+    /// Part 1 took 7.96ms
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .iter()
@@ -81,6 +85,7 @@ impl Day for Day07 {
 
     type Output2 = u64;
 
+    /// Part 2 took 321.1ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         input
             .iter()
@@ -100,6 +105,7 @@ impl Day for Day07 {
 }
 
 #[cfg(test)]
+#[allow(const_item_mutation)]
 mod tests {
     use super::*;
 
