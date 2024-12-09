@@ -17,10 +17,6 @@ pub struct MapIterator {
     pos_head: usize,
     /// An index pointing to the last unmoved file in the map
     pos_tail: usize,
-    /// The current file ID
-    current_id: usize,
-    /// The current tail file ID (file to move)
-    tail_id: usize,
     /// Remaining sectors in the head file or empty space
     remaining_head: u8,
 }
@@ -54,7 +50,7 @@ impl Iterator for MapIterator {
                     self.pos_head += 1;
                     self.remaining_head = self.map[self.pos_head]; // empty space size
                 }
-                Some(self.current_id)
+                Some(self.pos_head / 2) // file ID
             }
             (false, 0, _) => {
                 // no empty space, means we go the next file directly
@@ -72,8 +68,7 @@ impl Iterator for MapIterator {
                     // sectors and then we'll be done
                     self.remaining_head = self.map[self.pos_tail] - 1; // we are yielding one item directly
                 }
-                self.current_id += 1;
-                Some(self.current_id)
+                Some(self.pos_head / 2) // file ID
             }
             (false, 1.., 0) => unreachable!("empty file, should not happen"),
             (false, 1.., 1..) => {
@@ -88,14 +83,11 @@ impl Iterator for MapIterator {
                     // empty slot has been filled, move to next file
                     self.pos_head += 1; // now points to a file
                     self.remaining_head = self.map[self.pos_head]; // next file size
-                    self.current_id += 1; // next file ID
                 }
-                let id = self.tail_id; // value to return
+                let id = self.pos_tail / 2; // value to return (tail file ID)
                 if self.map[self.pos_tail] == 0 {
                     // tail file has been copied entirely
-                    // move to previous tail file
-                    self.pos_tail -= 2;
-                    self.tail_id -= 1; // previous tail file ID
+                    self.pos_tail -= 2; // move to previous tail file
                 }
                 if self.pos_head == self.pos_tail {
                     // we are moving into the same file as the tail, so we can just finish iteration with the
@@ -121,8 +113,6 @@ impl IntoIterator for DiskMap {
             map: self.0,
             pos_head: 0,
             pos_tail: len - 1,
-            current_id: 0,
-            tail_id: len / 2,
             remaining_head: first,
         }
     }
