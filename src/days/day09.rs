@@ -143,6 +143,7 @@ impl Day for Day09 {
 
     type Output1 = usize;
 
+    /// Part 1 took 136.8us
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .clone()
@@ -154,6 +155,7 @@ impl Day for Day09 {
 
     type Output2 = usize;
 
+    /// Part 2 took 197.7ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         // create the actual sectors list for the map
         // `None` means the sector is empty, `Some(id)` means it contains a part of file ID
