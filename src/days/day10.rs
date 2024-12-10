@@ -1,13 +1,16 @@
 use std::collections::VecDeque;
 
+use itertools::Itertools as _;
 use winnow::{
     ascii::line_ending,
     combinator::{repeat, separated},
-    token::none_of,
+    token::one_of,
     PResult, Parser as _,
 };
 
 use crate::days::Day;
+
+const GRID_SIZE: usize = 48;
 
 /// Top - Right - Bottom - Left
 const DIRS: [(i8, i8); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
@@ -53,11 +56,11 @@ pub struct Puzzle {
 
 /// Parse a row of the input map
 fn parse_row(input: &mut &str) -> PResult<Vec<u8>> {
-    let chars: Vec<_> = repeat(1.., none_of('\n')).parse_next(input)?;
-    Ok(chars
-        .into_iter()
-        .map(|c| c.to_digit(10).unwrap() as u8)
-        .collect())
+    repeat(
+        1..,
+        one_of('0'..='9').map(|c: char| c.to_digit(10).unwrap() as u8),
+    )
+    .parse_next(input)
 }
 
 /// Search for all reachable points with an elevation of 9, starting from `start`
@@ -94,17 +97,15 @@ impl Day for Day10 {
     /// Parse the input elevation map and identify trail heads
     fn parser(input: &mut &str) -> PResult<Self::Input> {
         let elevations: Vec<_> = separated(1.., parse_row, line_ending).parse_next(input)?;
-        let mut trail_heads = Vec::new();
-        for (y, row) in elevations.iter().enumerate() {
-            for (x, elevation) in row.iter().enumerate() {
-                if *elevation == 0 {
-                    trail_heads.push(Point {
-                        x: x.try_into().unwrap(),
-                        y: y.try_into().unwrap(),
-                    });
-                }
-            }
-        }
+        let trail_heads: Vec<_> = elevations
+            .iter()
+            .flatten()
+            .positions(|e| *e == 0)
+            .map(|idx| Point {
+                x: (idx % GRID_SIZE) as i8,
+                y: (idx / GRID_SIZE) as i8,
+            })
+            .collect();
         Ok(Puzzle {
             map: elevations,
             trail_heads,
