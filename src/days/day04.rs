@@ -9,15 +9,15 @@ use crate::days::Day;
 
 const GRID_SIZE: isize = 140;
 const WORD: [char; 4] = ['X', 'M', 'A', 'S'];
-const DIRS: [[isize; 2]; 8] = [
-    [0, -1],  // up
-    [1, -1],  // top right
-    [1, 0],   // right
-    [1, 1],   // bottom right
-    [0, 1],   // down
-    [-1, 1],  // bottom left
-    [-1, 0],  // left
-    [-1, -1], // top left
+const DIRS: [(isize, isize); 8] = [
+    (0, -1),  // up
+    (1, -1),  // top right
+    (1, 0),   // right
+    (1, 1),   // bottom right
+    (0, 1),   // down
+    (-1, 1),  // bottom left
+    (-1, 0),  // left
+    (-1, -1), // top left
 ];
 
 pub struct Day04;
@@ -52,10 +52,10 @@ impl Grid {
     }
 
     /// Search for the word starting at coordinate (col, row) in a given direction.
-    fn search_dir(&self, col: isize, row: isize, dir: &[isize; 2]) -> bool {
+    fn search_dir(&self, col: isize, row: isize, dir: &(isize, isize)) -> bool {
         for (i, c) in WORD.iter().enumerate().skip(1) {
-            let x = col + dir[0] * i as isize;
-            let y = row + dir[1] * i as isize;
+            let x = col + dir.0 * i as isize;
+            let y = row + dir.1 * i as isize;
             if let Some(true) = self.is_letter(x, y, c) {
                 continue;
             }
