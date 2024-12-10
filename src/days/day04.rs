@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use winnow::{
     ascii::line_ending,
     combinator::{repeat, separated},
@@ -101,33 +102,28 @@ impl Day for Day04 {
 
     /// Part 1 took 322.3us
     fn part_1(grid: &Self::Input) -> Self::Output1 {
-        let mut count = 0;
         // find a grid cell which contains the first letter of the word, and then search in all directions
-        for y in 0..GRID_SIZE {
-            for x in 0..GRID_SIZE {
-                if let Some(true) = grid.is_letter(x, y, &WORD[0]) {
-                    count += DIRS.iter().filter(|dir| grid.search_dir(x, y, dir)).count();
+        (0..GRID_SIZE)
+            .cartesian_product(0..GRID_SIZE)
+            .filter_map(|(x, y)| {
+                if grid.is_letter(x, y, &WORD[0]) == Some(true) {
+                    Some(DIRS.iter().filter(|dir| grid.search_dir(x, y, dir)).count())
+                } else {
+                    None
                 }
-            }
-        }
-        count
+            })
+            .sum()
     }
 
     type Output2 = usize;
 
     /// Part 2 took 115.8us
     fn part_2(grid: &Self::Input) -> Self::Output2 {
-        let mut count = 0;
-        // find a grid cell which contains the 'A' cross center, then search neighboring cells for the right letters
-        for y in 0..GRID_SIZE {
-            for x in 0..GRID_SIZE {
-                if let Some(true) = grid.is_letter(x, y, &'A') {
-                    if grid.search_cross(x, y) {
-                        count += 1;
-                    }
-                }
-            }
-        }
-        count
+        (0..GRID_SIZE)
+            .cartesian_product(0..GRID_SIZE)
+            .filter(|(x, y)| {
+                grid.is_letter(*x, *y, &'A') == Some(true) && grid.search_cross(*x, *y)
+            })
+            .count()
     }
 }
