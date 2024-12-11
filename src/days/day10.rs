@@ -10,7 +10,7 @@ use winnow::{
 
 use crate::days::Day;
 
-const GRID_SIZE: usize = 48;
+const GRID_SIZE: usize = if cfg!(test) { 8 } else { 48 };
 
 /// Top - Right - Bottom - Left
 const DIRS: [(i8, i8); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
