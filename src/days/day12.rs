@@ -25,11 +25,13 @@ pub struct Point {
 }
 
 impl Point {
+    /// Retrieve the crop type at this point, or `None` if out of bounds
     fn crop<'a>(&self, map: &'a [Vec<char>]) -> Option<&'a char> {
         map.get(self.y as usize)
             .and_then(|row| row.get(self.x as usize))
     }
 
+    /// Get the neighbors of this point which have the same crop type
     fn neighbors(&self, map: &[Vec<char>]) -> Vec<Point> {
         let crop = self.crop(map);
         DIRS.iter()
@@ -41,6 +43,7 @@ impl Point {
             .collect()
     }
 
+    /// Count how many convex and concave corners are bordering this plot
     fn count_corners(&self, map: &[Vec<char>]) -> usize {
         let mut corners = 0;
         let crop = self.crop(map);
@@ -75,6 +78,8 @@ impl Point {
                 .crop(map)
             })
             .collect_vec();
+        // if two consecutive neighbors are both the same as the current plot, and the corner in-between is different,
+        // then we have a concave corner
         corners += neighbors
             .iter()
             .cycle()
@@ -96,12 +101,16 @@ pub struct Region {
 }
 
 impl Region {
+    /// Check whether the region contains a given plot
     fn contains(&self, point: &Point) -> bool {
         self.points.contains(point)
     }
 }
 
-fn bfs_flood(start: &Point, map: &[Vec<char>]) -> Region {
+/// Use a BFS flooding algorithm to find all the plots belonging to the same region as `start`
+///
+/// At the same time, calculate the number of corners in the region, as well as the perimeter length.
+fn bfs_flood(start: &Point, map: &[Vec<char>], part2: bool) -> Region {
     let mut perimeter = 0;
     let mut corners = 0;
     let mut region = HashSet::default();
@@ -113,7 +122,9 @@ fn bfs_flood(start: &Point, map: &[Vec<char>]) -> Region {
         stack.extend(neighbors.into_iter().filter(|p| !region.contains(p)));
         if region.insert(plot) {
             perimeter += perimeter_increase;
-            corners += plot.count_corners(map);
+            if part2 {
+                corners += plot.count_corners(map);
+            }
         }
     }
     Region {
@@ -123,7 +134,8 @@ fn bfs_flood(start: &Point, map: &[Vec<char>]) -> Region {
     }
 }
 
-fn get_regions(map: &[Vec<char>]) -> Vec<Region> {
+/// Create a list of all regions
+fn get_regions(map: &[Vec<char>], part2: bool) -> Vec<Region> {
     let mut regions = Vec::<Region>::new();
     for y in 0..GRID_SIZE {
         for x in 0..GRID_SIZE {
@@ -134,12 +146,13 @@ fn get_regions(map: &[Vec<char>]) -> Vec<Region> {
             if regions.iter().any(|r| r.contains(&point)) {
                 continue;
             }
-            regions.push(bfs_flood(&point, map));
+            regions.push(bfs_flood(&point, map, part2));
         }
     }
     regions
 }
 
+/// Parse a line of the input
 fn parse_line(input: &mut &str) -> PResult<Vec<char>> {
     repeat(1.., one_of('A'..='Z')).parse_next(input)
 }
@@ -153,8 +166,9 @@ impl Day for Day12 {
 
     type Output1 = usize;
 
+    /// Part 1 took 15.3ms
     fn part_1(input: &Self::Input) -> Self::Output1 {
-        let regions = get_regions(input);
+        let regions = get_regions(input, false);
         regions
             .into_iter()
             .map(|r| r.points.len() * r.perimeter)
@@ -163,8 +177,9 @@ impl Day for Day12 {
 
     type Output2 = usize;
 
+    /// Part 2 took 16.7ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
-        let regions = get_regions(input);
+        let regions = get_regions(input, true);
         regions
             .into_iter()
             .map(|r| r.points.len() * r.corners)
