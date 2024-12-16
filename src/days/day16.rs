@@ -9,9 +9,9 @@ use winnow::{
     PResult, Parser as _,
 };
 
-const GRID_SIZE: usize = if cfg!(test) { 15 } else { 141 };
-
 use crate::days::Day;
+
+const GRID_SIZE: usize = if cfg!(test) { 15 } else { 141 };
 
 pub type HashSet<T> = std::collections::HashSet<T, ahash::RandomState>;
 
