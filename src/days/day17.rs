@@ -1,25 +1,208 @@
-use winnow::PResult;
+use itertools::Itertools as _;
+use winnow::{
+    ascii::{dec_uint, digit1, line_ending},
+    combinator::{preceded, separated, separated_pair},
+    token::one_of,
+    PResult, Parser as _,
+};
 
 use crate::days::Day;
 
 pub struct Day17;
 
-impl Day for Day17 {
-    type Input = String;
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum ComboOp {
+    Lit(u8),
+    RegisterA,
+    RegisterB,
+    RegisterC,
+}
 
-    fn parser(_input: &mut &str) -> PResult<Self::Input> {
-        unimplemented!("parser")
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum Instruction {
+    Adv(ComboOp), // divide A by 2**op -> A
+    Bxl(u8),      // XOR B with literal op
+    Bst(ComboOp), // op % 8 -> B
+    Jnz(u8),      // do nothing if A is 0, otherwise jump to instruction
+    Bxc,          // XOR of B and C -> B
+    Out(ComboOp), // op % 8 -> output
+    Bdv(ComboOp), // divide A by 2**op -> B
+    Cdv(ComboOp), // divide A by 2**op -> C
+}
+
+#[derive(Debug, Clone)]
+pub struct State {
+    a: usize,
+    b: usize,
+    c: usize,
+    pointer: usize,
+    instructions: Vec<Instruction>,
+    orig: Vec<u8>,
+}
+
+impl State {
+    fn with_register(&self, a: usize) -> Self {
+        let clone = self.clone();
+        Self { a, ..clone }
     }
 
-    type Output1 = usize;
+    fn get_op_value(&self, op: ComboOp) -> usize {
+        match op {
+            ComboOp::Lit(x) => x as usize,
+            ComboOp::RegisterA => self.a,
+            ComboOp::RegisterB => self.b,
+            ComboOp::RegisterC => self.c,
+        }
+    }
+}
 
-    fn part_1(_input: &Self::Input) -> Self::Output1 {
-        unimplemented!("part_1")
+impl Iterator for State {
+    type Item = Option<u8>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let instr = self.instructions.get(self.pointer)?;
+        match instr {
+            Instruction::Adv(op) => self.a >>= self.get_op_value(*op),
+            Instruction::Bxl(x) => self.b ^= *x as usize,
+            Instruction::Bst(op) => self.b = self.get_op_value(*op) % 8,
+            Instruction::Jnz(x) => {
+                if self.a > 0 {
+                    self.pointer = *x as usize;
+                    return Some(None);
+                }
+            }
+            Instruction::Bxc => self.b ^= self.c,
+            Instruction::Out(op) => {
+                self.pointer += 1;
+                return Some(Some((self.get_op_value(*op) % 8) as u8));
+            }
+            Instruction::Bdv(op) => self.b = self.a >> self.get_op_value(*op),
+            Instruction::Cdv(op) => self.c = self.a >> self.get_op_value(*op),
+        }
+        self.pointer += 1;
+        Some(None)
+    }
+}
+
+/// Recursively find a program input that yields the program itself
+fn find_input(input: &State, a: usize, i: usize) -> Option<usize> {
+    let res = input.with_register(a).flatten().collect_vec();
+    // if the output matches the program, we found the solution!
+    if res == input.orig {
+        return Some(a);
+    }
+    let start = input.orig.len() - i;
+    // compare the (partial) output to the end of the original program
+    if res == input.orig[start..] || i == 0 {
+        // if we have a partial match, we try to append each possible 3-bit number to the input value
+        for n in 0..=0b111 {
+            if let Some(sol) = find_input(input, 8 * a + n, i + 1) {
+                // if we have a match, it means we found a correct value for those bits
+                return Some(sol);
+            }
+        }
+    }
+    None
+}
+
+fn parse_register(input: &mut &str) -> PResult<usize> {
+    let (_, _, _, reg) = (
+        "Register ",
+        one_of(('A', 'B', 'C')),
+        ": ",
+        digit1.parse_to(),
+    )
+        .parse_next(input)?;
+    Ok(reg)
+}
+
+fn parse_registers(input: &mut &str) -> PResult<(usize, usize, usize)> {
+    let registers: Vec<_> = separated(3, parse_register, line_ending).parse_next(input)?;
+    Ok(registers.into_iter().collect_tuple().unwrap())
+}
+
+fn parse_instructions(input: &mut &str) -> PResult<Vec<u8>> {
+    preceded("Program: ", separated(1.., dec_uint::<_, u8, _>, ',')).parse_next(input)
+}
+
+impl Day for Day17 {
+    type Input = State;
+
+    fn parser(input: &mut &str) -> PResult<Self::Input> {
+        let (registers, instructions) =
+            separated_pair(parse_registers, "\n\n", parse_instructions).parse_next(input)?;
+        let instructions_parsed = instructions
+            .chunks_exact(2)
+            .map(|instr| {
+                let op = match instr[1] {
+                    0..=3 => ComboOp::Lit(instr[1]),
+                    4 => ComboOp::RegisterA,
+                    5 => ComboOp::RegisterB,
+                    6 => ComboOp::RegisterC,
+                    _ => unimplemented!(),
+                };
+                match instr[0] {
+                    0 => Instruction::Adv(op),
+                    1 => Instruction::Bxl(instr[1]),
+                    2 => Instruction::Bst(op),
+                    3 => Instruction::Jnz(instr[1]),
+                    4 => Instruction::Bxc,
+                    5 => Instruction::Out(op),
+                    6 => Instruction::Bdv(op),
+                    7 => Instruction::Cdv(op),
+                    _ => unimplemented!(),
+                }
+            })
+            .collect();
+        Ok(State {
+            a: registers.0,
+            b: registers.1,
+            c: registers.2,
+            pointer: 0,
+            instructions: instructions_parsed,
+            orig: instructions,
+        })
+    }
+
+    type Output1 = String;
+
+    fn part_1(input: &Self::Input) -> Self::Output1 {
+        input.clone().flatten().map(|n| n.to_string()).join(",")
     }
 
     type Output2 = usize;
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        unimplemented!("part_2")
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        find_input(input, 0, 0).unwrap()
+    }
+}
+
+#[cfg(test)]
+#[allow(const_item_mutation)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = "Register A: 729
+Register B: 0
+Register C: 0
+
+Program: 0,1,5,4,3,0";
+
+    const INPUT2: &str = "Register A: 2024
+Register B: 0
+Register C: 0
+
+Program: 0,3,5,4,3,0";
+
+    #[test]
+    fn test_part1() {
+        let parsed = Day17::parser(&mut INPUT).unwrap();
+        assert_eq!(Day17::part_1(&parsed), "4,6,3,5,6,3,5,2,1,0".to_string());
+    }
+
+    #[test]
+    fn test_part2() {
+        let parsed = Day17::parser(&mut INPUT2).unwrap();
+        assert_eq!(Day17::part_2(&parsed), 117440);
     }
 }
