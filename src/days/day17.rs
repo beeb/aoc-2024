@@ -10,6 +10,7 @@ use crate::days::Day;
 
 pub struct Day17;
 
+/// A combo operator, either a literal value or the value of a register
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ComboOp {
     Lit(u8),
@@ -18,6 +19,7 @@ pub enum ComboOp {
     RegisterC,
 }
 
+/// An instruction for the VM
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Instruction {
     Adv(ComboOp), // divide A by 2**op -> A
@@ -30,6 +32,7 @@ pub enum Instruction {
     Cdv(ComboOp), // divide A by 2**op -> C
 }
 
+/// The state of the VM comprised of 3 registers and an instruction pointer
 #[derive(Debug, Clone)]
 pub struct State {
     a: usize,
@@ -41,11 +44,13 @@ pub struct State {
 }
 
 impl State {
+    /// Clone the state while changing the initial value of the A register
     fn with_register(&self, a: usize) -> Self {
         let clone = self.clone();
         Self { a, ..clone }
     }
 
+    /// Get the value for a combo operator, either a literal or the current value of a register
     fn get_op_value(&self, op: ComboOp) -> usize {
         match op {
             ComboOp::Lit(x) => x as usize,
@@ -57,8 +62,9 @@ impl State {
 }
 
 impl Iterator for State {
-    type Item = Option<u8>;
+    type Item = u8;
 
+    /// Process one or more instructions and advance the state of the VM, until an output is generated
     fn next(&mut self) -> Option<Self::Item> {
         let instr = self.instructions.get(self.pointer)?;
         match instr {
@@ -68,25 +74,25 @@ impl Iterator for State {
             Instruction::Jnz(x) => {
                 if self.a > 0 {
                     self.pointer = *x as usize;
-                    return Some(None);
+                    return self.next();
                 }
             }
             Instruction::Bxc => self.b ^= self.c,
             Instruction::Out(op) => {
                 self.pointer += 1;
-                return Some(Some((self.get_op_value(*op) % 8) as u8));
+                return Some((self.get_op_value(*op) % 8) as u8);
             }
             Instruction::Bdv(op) => self.b = self.a >> self.get_op_value(*op),
             Instruction::Cdv(op) => self.c = self.a >> self.get_op_value(*op),
         }
         self.pointer += 1;
-        Some(None)
+        self.next()
     }
 }
 
 /// Recursively find a program input that yields the program itself
 fn find_input(input: &State, a: usize, i: usize) -> Option<usize> {
-    let res = input.with_register(a).flatten().collect_vec();
+    let res = input.with_register(a).collect_vec();
     // if the output matches the program, we found the solution!
     if res == input.orig {
         return Some(a);
@@ -105,6 +111,7 @@ fn find_input(input: &State, a: usize, i: usize) -> Option<usize> {
     None
 }
 
+/// Parse the initial value for a register
 fn parse_register(input: &mut &str) -> PResult<usize> {
     let (_, _, _, reg) = (
         "Register ",
@@ -116,11 +123,13 @@ fn parse_register(input: &mut &str) -> PResult<usize> {
     Ok(reg)
 }
 
+/// Parse the 3 registers' initial values
 fn parse_registers(input: &mut &str) -> PResult<(usize, usize, usize)> {
     let registers: Vec<_> = separated(3, parse_register, line_ending).parse_next(input)?;
     Ok(registers.into_iter().collect_tuple().unwrap())
 }
 
+/// Parse the raw bytecode of the program
 fn parse_instructions(input: &mut &str) -> PResult<Vec<u8>> {
     preceded("Program: ", separated(1.., dec_uint::<_, u8, _>, ',')).parse_next(input)
 }
@@ -128,6 +137,7 @@ fn parse_instructions(input: &mut &str) -> PResult<Vec<u8>> {
 impl Day for Day17 {
     type Input = State;
 
+    /// Transform the raw bytecode into a nice typed definition of the program and state
     fn parser(input: &mut &str) -> PResult<Self::Input> {
         let (registers, instructions) =
             separated_pair(parse_registers, "\n\n", parse_instructions).parse_next(input)?;
@@ -166,12 +176,14 @@ impl Day for Day17 {
 
     type Output1 = String;
 
+    /// Part 1 took 2.3us
     fn part_1(input: &Self::Input) -> Self::Output1 {
-        input.clone().flatten().map(|n| n.to_string()).join(",")
+        input.clone().map(|n| n.to_string()).join(",")
     }
 
     type Output2 = usize;
 
+    /// Part 2 took 104.1us
     fn part_2(input: &Self::Input) -> Self::Output2 {
         find_input(input, 0, 0).unwrap()
     }
