@@ -92,13 +92,28 @@ impl Day for Day18 {
         let start = (0, 0);
         let goal = (GRID_SIZE - 1, GRID_SIZE - 1);
         let (first, second) = input.split_at(PART1_LEN);
-        let mut grid = make_grid(first);
-        for obs in second {
-            grid.remove_vertex(obs.into());
-            if !grid.dfs_reachable(start, |_| true).contains(&goal) {
-                return format!("{},{}", obs.x, obs.y);
+        let grid = make_grid(first);
+        // binary search
+        // index into the second half of the pieces
+        let mut left = 0;
+        let mut right = second.len() - 1;
+        while left < right {
+            let mut grid = grid.clone();
+            let m = (left + right) / 2;
+            // add obstacles with indices up to and including m
+            for obs in second.get(0..=m).unwrap() {
+                grid.remove_vertex(obs.into());
+            }
+            if grid.dfs_reachable(start, |_| true).contains(&goal) {
+                // if we can still reach the exit, we increment the left bound
+                left = m + 1;
+            } else {
+                // else we decrement the right bound
+                right = m - 1;
             }
         }
-        "".to_string()
+        // when left == right, we found the first piece which cuts off the exit
+        let obs = second.get(left).unwrap();
+        format!("{},{}", obs.x, obs.y)
     }
 }
