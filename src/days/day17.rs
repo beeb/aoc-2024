@@ -91,6 +91,21 @@ impl Iterator for State {
 }
 
 /// Recursively find a program input that yields the program itself
+///
+/// To solve this part, we must first analyze the behavior of the input program and note the following:
+/// - the program contains a jump instruction at the end which returns to the first instruction until register A is zero
+/// - this means the program is one main loop
+/// - there is only 1 instruction which can alter the value of the A register (ADV)
+/// - in my case, this instruction divides the value of the A register by 8 (2^3) once per loop iteration
+/// - dividing by 8 is equivalent to discarding the 3 lowest bit of the value of the A register (shifting right 3 bits)
+/// - by printing the output for initial A register values between 0 and 0b111111 we can see a pattern emerging, whereby
+///   the first 3 bits of the input dictate the last output value of the program
+/// - likewise, the 3 bits after that dictate the one-before-last output value
+///
+/// We can thus try all 8 possible values for a sequence of 3 bits appended at the end of the A register value and
+/// find which ones (there may be multiple) give us a output matching the end of the original program.
+/// By recursively trying to add 3 bits to the A register until we have a perfect match for the full length of the input
+/// program, we find the answer.
 fn find_input(input: &State, a: usize, i: usize) -> Option<usize> {
     let res = input.with_register(a).collect_vec();
     // if the output matches the program, we found the solution!
@@ -102,7 +117,7 @@ fn find_input(input: &State, a: usize, i: usize) -> Option<usize> {
     if res == input.orig[start..] || i == 0 {
         // if we have a partial match, we try to append each possible 3-bit number to the input value
         for n in 0..=0b111 {
-            if let Some(sol) = find_input(input, 8 * a + n, i + 1) {
+            if let Some(sol) = find_input(input, (a << 3) + n, i + 1) {
                 // if we have a match, it means we found a correct value for those bits
                 return Some(sol);
             }
