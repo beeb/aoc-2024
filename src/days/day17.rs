@@ -103,7 +103,7 @@ impl Iterator for State {
 /// - likewise, the 3 bits after that dictate the one-before-last output value
 ///
 /// We can thus try all 8 possible values for a sequence of 3 bits appended at the end of the A register value and
-/// find which ones (there may be multiple) give us a output matching the end of the original program.
+/// find which ones (there may be multiple) give us an output matching the end of the original program.
 /// By recursively trying to add 3 bits to the A register until we have a perfect match for the full length of the input
 /// program, we find the answer.
 fn find_input(input: &State, a: usize, i: usize) -> Option<usize> {
