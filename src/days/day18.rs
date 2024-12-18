@@ -105,14 +105,14 @@ impl Day for Day18 {
                 grid.remove_vertex(obs.into());
             }
             if grid.dfs_reachable(start, |_| true).contains(&goal) {
-                // if we can still reach the exit, we increment the left bound
+                // if we can still reach the exit, we move the left bound past m
                 left = m + 1;
             } else {
-                // else we decrement the right bound
+                // else we move the right bound below m
                 right = m - 1;
             }
         }
-        // when left == right, we found the first piece which cuts off the exit
+        // when left >= right, we found the first piece which cuts off the exit
         let obs = second.get(left).unwrap();
         format!("{},{}", obs.x, obs.y)
     }
