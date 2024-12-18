@@ -123,7 +123,8 @@ fn find_input(input: &State, a: usize, i: usize) -> Option<usize> {
         // if we have a partial match, we try to append each possible 3-bit number to the input value
         for n in 0..=0b111 {
             if let Some(sol) = find_input(input, (a << 3) + n, i + 1) {
-                // if we have a match, it means we found a correct value for those bits
+                // since this is recursing until the output perfectly matches the input program,
+                // if we have a match, it means we found a correct value for the A register value
                 return Some(sol);
             }
         }
