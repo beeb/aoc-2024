@@ -112,9 +112,14 @@ fn find_input(input: &State, a: usize, i: usize) -> Option<usize> {
     if res == input.orig {
         return Some(a);
     }
-    let start = input.orig.len() - i;
     // compare the (partial) output to the end of the original program
-    if res == input.orig[start..] || i == 0 {
+    if res
+        .iter()
+        .rev()
+        .zip(input.orig.iter().rev())
+        .all(|(r, o)| r == o)
+        || i == 0
+    {
         // if we have a partial match, we try to append each possible 3-bit number to the input value
         for n in 0..=0b111 {
             if let Some(sol) = find_input(input, (a << 3) + n, i + 1) {
