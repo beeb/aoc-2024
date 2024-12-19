@@ -112,6 +112,11 @@ fn find_input(input: &State, a: usize, i: usize) -> Option<usize> {
     if res == input.orig {
         return Some(a);
     }
+    if res.len() < i {
+        // if the result is shorter than the input, that's not the candidate we're looking for
+        // this is necessary to avoid infinite recursion if the original program starts with 0
+        return None;
+    }
     // compare the (partial) output to the end of the original program
     if res
         .iter()
@@ -204,7 +209,7 @@ impl Day for Day17 {
 
     type Output2 = usize;
 
-    /// Part 2 took 104.1us
+    /// Part 2 took 98.4us
     fn part_2(input: &Self::Input) -> Self::Output2 {
         find_input(input, 0, 0).unwrap()
     }
