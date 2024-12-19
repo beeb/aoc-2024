@@ -6,6 +6,8 @@ use winnow::{
 
 use crate::days::Day;
 
+pub type HashMap<K, T> = std::collections::HashMap<K, T, ahash::RandomState>;
+
 pub struct Day19;
 
 #[derive(Debug, Clone)]
@@ -36,6 +38,26 @@ fn can_create(pattern: &str, available: &[String]) -> bool {
     false
 }
 
+fn count_combinations(
+    pattern: &str,
+    available: &[String],
+    cache: &mut HashMap<String, usize>,
+) -> usize {
+    if let Some(res) = cache.get(pattern) {
+        return *res;
+    }
+    let mut res = 0;
+    for towel in available {
+        if pattern == towel {
+            res += 1;
+        } else if let Some(next) = pattern.strip_prefix(towel) {
+            res += count_combinations(next, available, cache);
+        }
+    }
+    cache.insert(pattern.to_string(), res);
+    res
+}
+
 impl Day for Day19 {
     type Input = Puzzle;
 
@@ -60,8 +82,13 @@ impl Day for Day19 {
 
     type Output2 = usize;
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        unimplemented!("part_2")
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        let mut cache = HashMap::default();
+        input
+            .desired
+            .iter()
+            .map(|d| count_combinations(d, &input.available, &mut cache))
+            .sum()
     }
 }
 
@@ -85,5 +112,11 @@ bbrgwb";
     fn test_part1() {
         let parsed = Day19::parser(&mut INPUT).unwrap();
         assert_eq!(Day19::part_1(&parsed), 6);
+    }
+
+    #[test]
+    fn test_part2() {
+        let parsed = Day19::parser(&mut INPUT).unwrap();
+        assert_eq!(Day19::part_2(&parsed), 16);
     }
 }
