@@ -16,20 +16,23 @@ pub struct Puzzle {
     desired: Vec<String>,
 }
 
+/// Parse the available towel patterns
 fn parse_available(input: &mut &str) -> PResult<Vec<String>> {
     separated(1.., alpha1.map(|s: &str| s.to_string()), ", ").parse_next(input)
 }
 
+/// Parse the desired towel arrangements
 fn parse_desired(input: &mut &str) -> PResult<Vec<String>> {
     separated(1.., alpha1.map(|s: &str| s.to_string()), line_ending).parse_next(input)
 }
 
-fn can_create(pattern: &str, available: &[String]) -> bool {
+/// Check whether an arrangement can be created from the available towels
+fn can_create(arr: &str, available: &[String]) -> bool {
     for towel in available {
-        if pattern == towel {
+        if arr == towel {
             return true;
         }
-        if let Some(next) = pattern.strip_prefix(towel) {
+        if let Some(next) = arr.strip_prefix(towel) {
             if can_create(next, available) {
                 return true;
             }
@@ -38,23 +41,24 @@ fn can_create(pattern: &str, available: &[String]) -> bool {
     false
 }
 
+/// Count how many ways there are to arrange available towels into the desired arrangement
 fn count_combinations(
-    pattern: &str,
+    arr: &str,
     available: &[String],
     cache: &mut HashMap<String, usize>,
 ) -> usize {
-    if let Some(res) = cache.get(pattern) {
+    if let Some(res) = cache.get(arr) {
         return *res;
     }
     let mut res = 0;
     for towel in available {
-        if pattern == towel {
+        if arr == towel {
             res += 1;
-        } else if let Some(next) = pattern.strip_prefix(towel) {
+        } else if let Some(next) = arr.strip_prefix(towel) {
             res += count_combinations(next, available, cache);
         }
     }
-    cache.insert(pattern.to_string(), res);
+    cache.insert(arr.to_string(), res);
     res
 }
 
@@ -72,6 +76,7 @@ impl Day for Day19 {
 
     type Output1 = usize;
 
+    /// Part 1 took 2.17ms
     fn part_1(input: &Self::Input) -> Self::Output1 {
         input
             .desired
@@ -82,6 +87,7 @@ impl Day for Day19 {
 
     type Output2 = usize;
 
+    /// Part 2 tool 18.3ms
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let mut cache = HashMap::default();
         input
