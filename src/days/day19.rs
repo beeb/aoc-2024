@@ -26,21 +26,6 @@ fn parse_desired(input: &mut &str) -> PResult<Vec<String>> {
     separated(1.., alpha1.map(|s: &str| s.to_string()), line_ending).parse_next(input)
 }
 
-/// Check whether an arrangement can be created from the available towels
-fn can_create(arr: &str, available: &[String]) -> bool {
-    for towel in available {
-        if arr == towel {
-            return true;
-        }
-        if let Some(next) = arr.strip_prefix(towel) {
-            if can_create(next, available) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
 /// Count how many ways there are to arrange available towels into the desired arrangement
 fn count_combinations(
     arr: &str,
@@ -78,10 +63,11 @@ impl Day for Day19 {
 
     /// Part 1 took 2.17ms
     fn part_1(input: &Self::Input) -> Self::Output1 {
+        let mut cache = HashMap::default();
         input
             .desired
             .iter()
-            .filter(|d| can_create(d, &input.available))
+            .filter(|d| count_combinations(d, &input.available, &mut cache) > 0)
             .count()
     }
 
