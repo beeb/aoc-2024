@@ -1,66 +1,39 @@
-use std::ops::Deref;
-
 use winnow::{
-    ascii::line_ending,
-    combinator::{repeat, separated},
-    seq,
-    token::one_of,
-    PResult, Parser as _,
+    ascii::{alpha1, line_ending},
+    combinator::separated,
+    seq, PResult, Parser as _,
 };
 
 use crate::days::Day;
 
 pub struct Day19;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Color {
-    White,
-    Blue,
-    Black,
-    Red,
-    Green,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Pattern(Vec<Color>);
-
-impl Deref for Pattern {
-    type Target = Vec<Color>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Puzzle {
-    available: Vec<Pattern>,
-    desired: Vec<Pattern>,
+    available: Vec<String>,
+    desired: Vec<String>,
 }
 
-fn parse_pattern(input: &mut &str) -> PResult<Pattern> {
-    Ok(Pattern(
-        repeat(
-            1..,
-            one_of(('w', 'u', 'b', 'r', 'g')).map(|c| match c {
-                'w' => Color::White,
-                'u' => Color::Blue,
-                'b' => Color::Black,
-                'r' => Color::Red,
-                'g' => Color::Green,
-                _ => unimplemented!(),
-            }),
-        )
-        .parse_next(input)?,
-    ))
+fn parse_available(input: &mut &str) -> PResult<Vec<String>> {
+    separated(1.., alpha1.map(|s: &str| s.to_string()), ", ").parse_next(input)
 }
 
-fn parse_available(input: &mut &str) -> PResult<Vec<Pattern>> {
-    separated(1.., parse_pattern, ", ").parse_next(input)
+fn parse_desired(input: &mut &str) -> PResult<Vec<String>> {
+    separated(1.., alpha1.map(|s: &str| s.to_string()), line_ending).parse_next(input)
 }
 
-fn parse_desired(input: &mut &str) -> PResult<Vec<Pattern>> {
-    separated(1.., parse_pattern, line_ending).parse_next(input)
+fn can_create(pattern: &str, available: &[String]) -> bool {
+    for towel in available {
+        if pattern == towel {
+            return true;
+        }
+        if let Some(next) = pattern.strip_prefix(towel) {
+            if can_create(next, available) {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 impl Day for Day19 {
@@ -78,13 +51,39 @@ impl Day for Day19 {
     type Output1 = usize;
 
     fn part_1(input: &Self::Input) -> Self::Output1 {
-        println!("{input:?}");
-        0
+        input
+            .desired
+            .iter()
+            .filter(|d| can_create(d, &input.available))
+            .count()
     }
 
     type Output2 = usize;
 
     fn part_2(_input: &Self::Input) -> Self::Output2 {
         unimplemented!("part_2")
+    }
+}
+
+#[cfg(test)]
+#[allow(const_item_mutation)]
+mod tests {
+    use super::*;
+
+    const INPUT: &str = "r, wr, b, g, bwu, rb, gb, br
+
+brwrr
+bggr
+gbbr
+rrbgbr
+ubwu
+bwurrg
+brgr
+bbrgwb";
+
+    #[test]
+    fn test_part1() {
+        let parsed = Day19::parser(&mut INPUT).unwrap();
+        assert_eq!(Day19::part_1(&parsed), 6);
     }
 }
