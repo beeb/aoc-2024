@@ -58,21 +58,25 @@ fn get_track(race: &Race) -> IndexSet<Pos> {
 
 /// Count the possible cheats starting at `pos` with maximum `moves` steps
 fn count_possible_cheats(pos: Pos, track: &IndexSet<Pos>, moves: usize) -> usize {
-    let curr_time = track.get_index_of(&pos).unwrap();
+    let curr_time = track.get_index_of(&pos).unwrap(); // time at which we reach `pos`
     let mut count = 0;
-    let mut seen = HashSet::<Pos>::default();
+    let mut seen = HashSet::<Pos>::default(); // visited coordinates
     seen.insert(pos);
-    let mut candidates = VecDeque::from([(pos, moves)]);
+    let mut candidates = VecDeque::from([(pos, moves)]); // candidates for DFS
     while let Some((candidate, rem_moves)) = candidates.pop_front() {
+        // if the candidate lies on the track, we check if the cheat makes us gain at least 100ps
+        // the index into the racetrack list is the time when we visit that location
         if let Some(time) = track.get_index_of(&candidate) {
-            let steps = moves - rem_moves;
+            let steps = moves - rem_moves; // need to subtract the length of the cheat
             if time.saturating_sub(curr_time).saturating_sub(steps) >= SAVINGS_LIMT {
                 count += 1;
             }
         }
+        // if we reached the maximum number of cheat steps, we can't go further
         if rem_moves == 0 {
             continue;
         }
+        // check which of the four neighbours we can visit (inside the grid)
         let neighbours = DIRS.iter().filter_map(|(dx, dy)| {
             let x = candidate.0 as isize + dx;
             let y = candidate.1 as isize + dy;
@@ -82,6 +86,7 @@ fn count_possible_cheats(pos: Pos, track: &IndexSet<Pos>, moves: usize) -> usize
             Some((x as usize, y as usize))
         });
         for (x, y) in neighbours {
+            // for each neighbour we haven't visited yet, we add it to the DFS list
             if !seen.contains(&(x, y)) {
                 candidates.push_back(((x, y), rem_moves - 1));
                 seen.insert((x, y));
