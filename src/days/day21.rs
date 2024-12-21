@@ -280,6 +280,7 @@ impl Day for Day21 {
 
     type Output1 = usize;
 
+    /// Part 1 took 202.2us
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let dir_keypad = make_dir_keypad();
         let num_keypad = make_numeric_keypad();
@@ -303,6 +304,7 @@ impl Day for Day21 {
 
     type Output2 = usize;
 
+    /// Part 2 took 489.7us
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let dir_keypad = make_dir_keypad();
         let num_keypad = make_numeric_keypad();
