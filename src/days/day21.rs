@@ -12,6 +12,7 @@ use winnow::{
 use crate::days::Day;
 
 pub type HashMap<K, T> = std::collections::HashMap<K, T, ahash::RandomState>;
+type Pos = (usize, usize);
 
 pub struct Day21;
 
@@ -47,7 +48,7 @@ const NUMPAD: [Numpad; 11] = [
 ];
 
 /// Convert from a numpad key to its coordinate on the keypad
-impl From<&Numpad> for (usize, usize) {
+impl From<&Numpad> for Pos {
     fn from(value: &Numpad) -> Self {
         match value {
             Numpad::Zero => (1, 3),
@@ -105,7 +106,7 @@ const DIRPAD: [Dirpad; 5] = [
 ];
 
 /// Convert from dirpad key to its coordinate on the keypad
-impl From<&Dirpad> for (usize, usize) {
+impl From<&Dirpad> for Pos {
     fn from(value: &Dirpad) -> Self {
         match value {
             Dirpad::Up => (1, 0),
@@ -142,10 +143,10 @@ fn make_dir_keypad() -> Grid {
 /// Find all paths from a coordinate to another on a grid, and convert them to sequences of moves
 /// (always ending with a keypress)
 fn paths(
-    start: (usize, usize),
-    end: (usize, usize),
+    start: Pos,
+    end: Pos,
     grid: &Grid,
-    cache: &mut HashMap<((usize, usize), (usize, usize)), Vec<Vec<Dirpad>>>,
+    cache: &mut HashMap<(Pos, Pos), Vec<Vec<Dirpad>>>,
 ) -> Vec<Vec<Dirpad>> {
     if let Some(res) = cache.get(&(start, end)) {
         return res.clone();
@@ -184,10 +185,10 @@ fn move_cost<K: Copy + Eq + std::hash::Hash>(
     grid: &Grid,
     keys: &[K],
     prev: Option<&HashMap<(Dirpad, Dirpad), usize>>,
-    paths_cache: &mut HashMap<((usize, usize), (usize, usize)), Vec<Vec<Dirpad>>>,
+    paths_cache: &mut HashMap<(Pos, Pos), Vec<Vec<Dirpad>>>,
 ) -> HashMap<(K, K), usize>
 where
-    for<'a> &'a K: Into<(usize, usize)>,
+    for<'a> &'a K: Into<Pos>,
 {
     let mut res = HashMap::default();
     for (a, b) in keys.iter().cartesian_product(keys.iter()) {
@@ -272,7 +273,7 @@ impl Day for Day21 {
 
     type Output2 = usize;
 
-    /// Part 2 took 210.8us
+    /// Part 2 took 209.7us
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let dir_keypad = make_dir_keypad();
         let num_keypad = make_numeric_keypad();
