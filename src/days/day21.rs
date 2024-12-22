@@ -169,34 +169,17 @@ fn paths(start: (usize, usize), end: (usize, usize), grid: &Grid) -> Vec<Vec<Dir
     .collect()
 }
 
-/// For each (start, end) dirpad key combination, what is the cost of moving to that key
-/// (on the first bot keypad closest to the human)
-fn move_cost_first(grid: &Grid) -> HashMap<(Dirpad, Dirpad), usize> {
-    let mut res = HashMap::default();
-
-    for (a, b) in DIRPAD.iter().cartesian_product(DIRPAD.iter()) {
-        if a == b {
-            res.insert((*a, *b), 1);
-            continue;
-        }
-        let len = paths(a.into(), b.into(), grid)
-            .into_iter()
-            .map(|path| path.len())
-            .min()
-            .unwrap();
-        res.insert((*a, *b), len);
-    }
-    res
-}
-
-/// For each (start, end) dirpad key combination, what is the cost of moving to that key
-/// (for all dirpads controlled by bots except the first one closes to the human)
-fn move_cost_dirpad(
+/// For each (start, end) dirpad/numpad key combination, what is the cost of moving to that key
+fn move_cost<K: Copy + Eq + std::hash::Hash>(
     grid: &Grid,
-    min_cost_prev: &HashMap<(Dirpad, Dirpad), usize>,
-) -> HashMap<(Dirpad, Dirpad), usize> {
+    keys: &[K],
+    prev: Option<&HashMap<(Dirpad, Dirpad), usize>>,
+) -> HashMap<(K, K), usize>
+where
+    for<'a> &'a K: Into<(usize, usize)>,
+{
     let mut res = HashMap::default();
-    for (a, b) in DIRPAD.iter().cartesian_product(DIRPAD.iter()) {
+    for (a, b) in keys.iter().cartesian_product(keys.iter()) {
         if a == b {
             res.insert((*a, *b), 1);
             continue;
@@ -204,41 +187,14 @@ fn move_cost_dirpad(
         let cost = paths(a.into(), b.into(), grid)
             .into_iter()
             .map(|path| {
+                let Some(prev) = prev else {
+                    return path.len();
+                };
                 let mut cost = 0;
                 let mut parent = Dirpad::Press;
                 for action in path {
                     // move and press
-                    cost += min_cost_prev.get(&(parent, action)).unwrap();
-                    parent = action;
-                }
-                cost
-            })
-            .min()
-            .unwrap();
-        res.insert((*a, *b), cost);
-    }
-    res
-}
-
-/// For each (start, end) numpad key combination, what is the cost of moving to that key
-fn move_cost_numpad(
-    grid: &Grid, // num grid
-    min_cost_prev: &HashMap<(Dirpad, Dirpad), usize>,
-) -> HashMap<(Numpad, Numpad), usize> {
-    let mut res = HashMap::default();
-    for (a, b) in NUMPAD.iter().cartesian_product(NUMPAD.iter()) {
-        if a == b {
-            res.insert((*a, *b), 1);
-            continue;
-        }
-        let cost = paths(a.into(), b.into(), grid)
-            .into_iter()
-            .map(|path| {
-                let mut cost = 0;
-                let mut parent = Dirpad::Press;
-                for action in path {
-                    // move and press
-                    cost += min_cost_prev.get(&(parent, action)).unwrap();
+                    cost += prev.get(&(parent, action)).unwrap();
                     parent = action;
                 }
                 cost
@@ -285,9 +241,9 @@ impl Day for Day21 {
         let dir_keypad = make_dir_keypad();
         let num_keypad = make_numeric_keypad();
         // construct the cost maps of each move at each level
-        let cost_first = move_cost_first(&dir_keypad);
-        let cost_dirpad = move_cost_dirpad(&dir_keypad, &cost_first);
-        let cost_numpad = move_cost_numpad(&num_keypad, &cost_dirpad);
+        let cost = move_cost(&dir_keypad, &DIRPAD, None);
+        let cost = move_cost(&dir_keypad, &DIRPAD, Some(&cost));
+        let cost = move_cost(&num_keypad, &NUMPAD, Some(&cost));
         // for each code sequence, calculate the minimum cost to input it (adding a move from the initial A key)
         input
             .iter()
@@ -295,7 +251,7 @@ impl Day for Day21 {
                 let len: usize = once(&Numpad::A)
                     .chain(code.iter())
                     .tuple_windows()
-                    .map(|(a, b)| cost_numpad.get(&(*a, *b)).unwrap())
+                    .map(|(a, b)| cost.get(&(*a, *b)).unwrap())
                     .sum();
                 code_to_num(code) * len
             })
@@ -304,22 +260,16 @@ impl Day for Day21 {
 
     type Output2 = usize;
 
-    /// Part 2 took 489.7us
+    /// Part 2 took 477.1us
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let dir_keypad = make_dir_keypad();
         let num_keypad = make_numeric_keypad();
         // construct the cost maps of each move at each level
-        let cost_first = move_cost_first(&dir_keypad);
-        let mut cost_dirpads = Vec::new();
-        for i in 0..24 {
-            if i == 0 {
-                cost_dirpads.push(move_cost_dirpad(&dir_keypad, &cost_first));
-            } else {
-                let add = move_cost_dirpad(&dir_keypad, &cost_dirpads[i - 1]);
-                cost_dirpads.push(add);
-            }
+        let mut cost = move_cost(&dir_keypad, &DIRPAD, None);
+        for _ in 0..24 {
+            cost = move_cost(&dir_keypad, &DIRPAD, Some(&cost));
         }
-        let cost_numpad = move_cost_numpad(&num_keypad, cost_dirpads.last().unwrap());
+        let cost = move_cost(&num_keypad, &NUMPAD, Some(&cost));
         // for each code sequence, calculate the minimum cost to input it (adding a move from the initial A key)
         input
             .iter()
@@ -327,7 +277,7 @@ impl Day for Day21 {
                 let len: usize = once(&Numpad::A)
                     .chain(code.iter())
                     .tuple_windows()
-                    .map(|(a, b)| cost_numpad.get(&(*a, *b)).unwrap())
+                    .map(|(a, b)| cost.get(&(*a, *b)).unwrap())
                     .sum();
                 code_to_num(code) * len
             })
