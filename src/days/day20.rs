@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn test_part1() {
         let parsed = Day20::parser(&mut INPUT).unwrap();
-        assert_eq!(Day20::part_1(&parsed), 0);
+        assert_eq!(Day20::part_1(&parsed), 1);
     }
 
     #[test]
