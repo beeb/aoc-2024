@@ -85,28 +85,6 @@ impl From<char> for Numpad {
     }
 }
 
-/// Parse a sequence of numpad keys
-fn parse_seq(input: &mut &str) -> PResult<Vec<Numpad>> {
-    let chars: Vec<_> = repeat(4, one_of('0'..='A')).parse_next(input)?;
-    Ok(chars.into_iter().map(Into::into).collect())
-}
-
-/// Create the numeric keypad (3 by 4 grid without the lower-left corner)
-fn make_numeric_keypad() -> Grid {
-    let mut grid = Grid::new(3, 4);
-    grid.fill();
-    grid.remove_vertex((0, 3));
-    grid
-}
-
-/// Create the directional keypad (3 by 2 without the top-left corner)
-fn make_dir_keypad() -> Grid {
-    let mut grid = Grid::new(3, 2);
-    grid.fill();
-    grid.remove_vertex((0, 0));
-    grid
-}
-
 /// A directional pad key
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Dirpad {
@@ -139,10 +117,40 @@ impl From<&Dirpad> for (usize, usize) {
     }
 }
 
+/// Parse a sequence of numpad keys
+fn parse_seq(input: &mut &str) -> PResult<Vec<Numpad>> {
+    let chars: Vec<_> = repeat(4, one_of('0'..='A')).parse_next(input)?;
+    Ok(chars.into_iter().map(Into::into).collect())
+}
+
+/// Create the numeric keypad (3 by 4 grid without the lower-left corner)
+fn make_numeric_keypad() -> Grid {
+    let mut grid = Grid::new(3, 4);
+    grid.fill();
+    grid.remove_vertex((0, 3));
+    grid
+}
+
+/// Create the directional keypad (3 by 2 without the top-left corner)
+fn make_dir_keypad() -> Grid {
+    let mut grid = Grid::new(3, 2);
+    grid.fill();
+    grid.remove_vertex((0, 0));
+    grid
+}
+
 /// Find all paths from a coordinate to another on a grid, and convert them to sequences of moves
 /// (always ending with a keypress)
-fn paths(start: (usize, usize), end: (usize, usize), grid: &Grid) -> Vec<Vec<Dirpad>> {
-    astar_bag_collect(
+fn paths(
+    start: (usize, usize),
+    end: (usize, usize),
+    grid: &Grid,
+    cache: &mut HashMap<((usize, usize), (usize, usize)), Vec<Vec<Dirpad>>>,
+) -> Vec<Vec<Dirpad>> {
+    if let Some(res) = cache.get(&(start, end)) {
+        return res.clone();
+    }
+    let res: Vec<_> = astar_bag_collect(
         &start,
         |p| grid.neighbours(*p).into_iter().map(|n| (n, 1)),
         |p| p.0.abs_diff(end.0) + p.1.abs_diff(end.1),
@@ -166,7 +174,9 @@ fn paths(start: (usize, usize), end: (usize, usize), grid: &Grid) -> Vec<Vec<Dir
             .chain(once(Dirpad::Press))
             .collect_vec()
     })
-    .collect()
+    .collect();
+    cache.insert((start, end), res.clone());
+    res
 }
 
 /// For each (start, end) dirpad/numpad key combination, what is the cost of moving to that key
@@ -174,6 +184,7 @@ fn move_cost<K: Copy + Eq + std::hash::Hash>(
     grid: &Grid,
     keys: &[K],
     prev: Option<&HashMap<(Dirpad, Dirpad), usize>>,
+    paths_cache: &mut HashMap<((usize, usize), (usize, usize)), Vec<Vec<Dirpad>>>,
 ) -> HashMap<(K, K), usize>
 where
     for<'a> &'a K: Into<(usize, usize)>,
@@ -184,7 +195,7 @@ where
             res.insert((*a, *b), 1);
             continue;
         }
-        let cost = paths(a.into(), b.into(), grid)
+        let cost = paths(a.into(), b.into(), grid, paths_cache)
             .into_iter()
             .map(|path| {
                 let Some(prev) = prev else {
@@ -236,14 +247,15 @@ impl Day for Day21 {
 
     type Output1 = usize;
 
-    /// Part 1 took 202.2us
+    /// Part 1 took 199.3us
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let dir_keypad = make_dir_keypad();
         let num_keypad = make_numeric_keypad();
+        let mut cache = HashMap::default();
         // construct the cost maps of each move at each level
-        let cost = move_cost(&dir_keypad, &DIRPAD, None);
-        let cost = move_cost(&dir_keypad, &DIRPAD, Some(&cost));
-        let cost = move_cost(&num_keypad, &NUMPAD, Some(&cost));
+        let cost = move_cost(&dir_keypad, &DIRPAD, None, &mut cache);
+        let cost = move_cost(&dir_keypad, &DIRPAD, Some(&cost), &mut cache);
+        let cost = move_cost(&num_keypad, &NUMPAD, Some(&cost), &mut cache);
         // for each code sequence, calculate the minimum cost to input it (adding a move from the initial A key)
         input
             .iter()
@@ -260,16 +272,17 @@ impl Day for Day21 {
 
     type Output2 = usize;
 
-    /// Part 2 took 477.1us
+    /// Part 2 took 210.8us
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let dir_keypad = make_dir_keypad();
         let num_keypad = make_numeric_keypad();
+        let mut cache = HashMap::default();
         // construct the cost maps of each move at each level
-        let mut cost = move_cost(&dir_keypad, &DIRPAD, None);
+        let mut cost = move_cost(&dir_keypad, &DIRPAD, None, &mut cache);
         for _ in 0..24 {
-            cost = move_cost(&dir_keypad, &DIRPAD, Some(&cost));
+            cost = move_cost(&dir_keypad, &DIRPAD, Some(&cost), &mut cache);
         }
-        let cost = move_cost(&num_keypad, &NUMPAD, Some(&cost));
+        let cost = move_cost(&num_keypad, &NUMPAD, Some(&cost), &mut cache);
         // for each code sequence, calculate the minimum cost to input it (adding a move from the initial A key)
         input
             .iter()
