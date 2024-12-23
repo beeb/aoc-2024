@@ -1,7 +1,7 @@
 use std::iter::once;
 
 use itertools::Itertools;
-use petgraph::{algo::toposort, prelude::*};
+use petgraph::prelude::*;
 use winnow::{
     ascii::{alpha1, line_ending},
     combinator::{separated, separated_pair},
