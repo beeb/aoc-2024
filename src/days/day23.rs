@@ -54,16 +54,12 @@ impl Day for Day23 {
             .nodes
             .values()
             .combinations(3)
-            .filter_map(|n| {
-                if n.iter()
+            .filter(|n| {
+                n.iter()
                     .tuple_combinations()
                     .all(|(a, b)| input.graph.contains_edge(**a, **b))
                     && n.iter()
                         .any(|idx| input.graph.node_weight(**idx).unwrap().starts_with("t"))
-                {
-                    return Some(n.into_iter().copied().collect_vec());
-                }
-                None
             })
             .count()
     }
