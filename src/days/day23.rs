@@ -1,5 +1,7 @@
+use std::iter::once;
+
 use itertools::Itertools;
-use petgraph::prelude::*;
+use petgraph::{algo::toposort, prelude::*};
 use winnow::{
     ascii::{alpha1, line_ending},
     combinator::{separated, separated_pair},
@@ -70,10 +72,36 @@ impl Day for Day23 {
             .count()
     }
 
-    type Output2 = usize;
+    type Output2 = String;
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        unimplemented!("part_2")
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        let mut largest_group = Vec::new();
+        for idx in input.nodes.values() {
+            for group in input
+                .graph
+                .neighbors(*idx)
+                .chain(once(*idx))
+                .powerset()
+                .filter(|set| {
+                    set.len() > 1
+                        && set
+                            .iter()
+                            .tuple_combinations()
+                            .all(|(a, b)| input.graph.contains_edge(*a, *b))
+                })
+            {
+                if group.len() > largest_group.len() {
+                    largest_group = group;
+                }
+            }
+        }
+        let mut nodes = largest_group
+            .into_iter()
+            .map(|idx| input.graph.node_weight(idx).unwrap())
+            .cloned()
+            .collect_vec();
+        nodes.sort_unstable();
+        nodes.join(",")
     }
 }
 
@@ -119,5 +147,11 @@ td-yn";
     fn test_part1() {
         let parsed = Day23::parser(&mut INPUT).unwrap();
         assert_eq!(Day23::part_1(&parsed), 7);
+    }
+
+    #[test]
+    fn test_part2() {
+        let parsed = Day23::parser(&mut INPUT).unwrap();
+        assert_eq!(Day23::part_2(&parsed), "co,de,ka,ta".to_string());
     }
 }
