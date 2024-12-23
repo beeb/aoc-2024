@@ -50,10 +50,6 @@ impl Day for Day23 {
     type Output1 = usize;
 
     fn part_1(input: &Self::Input) -> Self::Output1 {
-        // println!(
-        //     "{:?}",
-        //     Dot::with_config(&input.graph, &[Config::EdgeNoLabel])
-        // );
         input
             .nodes
             .values()
