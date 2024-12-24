@@ -1,5 +1,9 @@
 use std::collections::VecDeque;
 
+use petgraph::{
+    dot::{Config, Dot},
+    prelude::*,
+};
 use winnow::{
     ascii::{alphanumeric1, line_ending},
     combinator::{alt, separated, separated_pair},
@@ -47,19 +51,32 @@ impl Device {
                 self.gates.push_back(gate);
                 continue;
             };
-            let res = match gate.op {
+            let bit = match gate.op {
                 Operator::And => input0 & input1,
                 Operator::Or => input0 | input1,
                 Operator::Xor => input0 ^ input1,
             };
-            if let Some(bit) = gate
+            if let Some(pos) = gate
                 .output
                 .strip_prefix('z')
                 .and_then(|n| n.parse::<usize>().ok())
             {
-                out |= (res as u64) << bit;
+                out |= (bit as u64) << pos;
             } else {
-                self.values.insert(gate.output, res);
+                self.values.insert(gate.output, bit);
+            }
+        }
+        out
+    }
+
+    fn operand(&self, prefix: char) -> u64 {
+        let mut out = 0u64;
+        for (name, bit) in &self.values {
+            if let Some(pos) = name
+                .strip_prefix(prefix)
+                .and_then(|n| n.parse::<usize>().ok())
+            {
+                out |= (*bit as u64) << pos;
             }
         }
         out
@@ -118,9 +135,50 @@ impl Day for Day24 {
         device.execute()
     }
 
-    type Output2 = usize;
+    type Output2 = String;
 
-    fn part_2(_input: &Self::Input) -> Self::Output2 {
-        unimplemented!("part_2")
+    fn part_2(input: &Self::Input) -> Self::Output2 {
+        let mut graph = Graph::<String, Operator>::new();
+        let mut nodes = HashMap::<String, NodeIndex>::default();
+        for gate in &input.gates {
+            nodes
+                .entry(gate.input0.clone())
+                .or_insert(graph.add_node(gate.input0.clone()));
+            nodes
+                .entry(gate.input1.clone())
+                .or_insert(graph.add_node(gate.input1.clone()));
+            nodes
+                .entry(gate.output.clone())
+                .or_insert(graph.add_node(gate.output.clone()));
+            let output = *nodes.get(&gate.output).unwrap();
+            graph.add_edge(output, *nodes.get(&gate.input0).unwrap(), gate.op);
+            graph.add_edge(output, *nodes.get(&gate.input1).unwrap(), gate.op);
+        }
+        println!("{:?}", Dot::with_config(&graph, &[Config::EdgeNoLabel]));
+
+        // let pairs_idx = (0..(input.gates.len())).tuple_combinations(); // all pairs of gates
+        // let swapped_pairs = pairs_idx.combinations(4); // pick 4 at a time
+        // let first = input.operand('x');
+        // let second = input.operand('y');
+        // for pairs in swapped_pairs {
+        //     let mut device = input.clone();
+        //     for (a, b) in &pairs {
+        //         let temp = device.gates[*a].output.clone();
+        //         device.gates[*a].output = device.gates[*b].output.clone();
+        //         device.gates[*b].output = temp;
+        //     }
+        //     let sum = device.execute();
+        //     if first + second != sum {
+        //         continue;
+        //     }
+        //     let mut outputs = Vec::new();
+        //     for (a, b) in pairs {
+        //         outputs.push(device.gates[a].output.clone());
+        //         outputs.push(device.gates[b].output.clone());
+        //     }
+        //     outputs.sort_unstable();
+        //     return outputs.join(",");
+        // }
+        "".to_string()
     }
 }
