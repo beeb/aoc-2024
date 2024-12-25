@@ -19,8 +19,8 @@ pub enum Pins {
 /// Parse a lock input
 fn parse_lock(input: &mut &str) -> PResult<Pins> {
     let mut out = vec![0; 5];
-    for h in 0..5 {
-        let prec = if h == 0 { "#####\n" } else { "\n" };
+    for i in 0..5 {
+        let prec = if i == 0 { "#####\n" } else { "\n" };
         let height: Vec<_> = preceded(prec, repeat(5, one_of(('.', '#')))).parse_next(input)?;
         height.into_iter().enumerate().for_each(|(i, p)| {
             out[i] += (p == '#') as u8;
@@ -33,8 +33,8 @@ fn parse_lock(input: &mut &str) -> PResult<Pins> {
 /// Parse a key input
 fn parse_key(input: &mut &str) -> PResult<Pins> {
     let mut out = vec![0; 5];
-    for h in (1..=5).rev() {
-        let prec = if h == 5 { ".....\n" } else { "\n" };
+    for i in 0..5 {
+        let prec = if i == 0 { ".....\n" } else { "\n" };
         let height: Vec<_> = preceded(prec, repeat(5, one_of(('.', '#')))).parse_next(input)?;
         height.into_iter().enumerate().for_each(|(i, p)| {
             out[i] += (p == '#') as u8;
