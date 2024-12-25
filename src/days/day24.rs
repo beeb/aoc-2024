@@ -1,9 +1,5 @@
 use std::collections::VecDeque;
 
-use petgraph::{
-    dot::{Config, Dot},
-    prelude::*,
-};
 use winnow::{
     ascii::{alphanumeric1, line_ending},
     combinator::{alt, separated, separated_pair},
@@ -68,19 +64,6 @@ impl Device {
         }
         out
     }
-
-    fn operand(&self, prefix: char) -> u64 {
-        let mut out = 0u64;
-        for (name, bit) in &self.values {
-            if let Some(pos) = name
-                .strip_prefix(prefix)
-                .and_then(|n| n.parse::<usize>().ok())
-            {
-                out |= (*bit as u64) << pos;
-            }
-        }
-        out
-    }
 }
 
 fn parse_value(input: &mut &str) -> PResult<(String, bool)> {
@@ -130,6 +113,7 @@ impl Day for Day24 {
 
     type Output1 = u64;
 
+    /// Part 1 took 97.8us
     fn part_1(input: &Self::Input) -> Self::Output1 {
         let mut device = input.clone();
         device.execute()
@@ -137,48 +121,82 @@ impl Day for Day24 {
 
     type Output2 = String;
 
+    /// Part 2 took 69.5us
     fn part_2(input: &Self::Input) -> Self::Output2 {
-        let mut graph = Graph::<String, Operator>::new();
-        let mut nodes = HashMap::<String, NodeIndex>::default();
+        let mut to_swap = Vec::new();
         for gate in &input.gates {
-            nodes
-                .entry(gate.input0.clone())
-                .or_insert(graph.add_node(gate.input0.clone()));
-            nodes
-                .entry(gate.input1.clone())
-                .or_insert(graph.add_node(gate.input1.clone()));
-            nodes
-                .entry(gate.output.clone())
-                .or_insert(graph.add_node(gate.output.clone()));
-            let output = *nodes.get(&gate.output).unwrap();
-            graph.add_edge(output, *nodes.get(&gate.input0).unwrap(), gate.op);
-            graph.add_edge(output, *nodes.get(&gate.input1).unwrap(), gate.op);
+            match gate.op {
+                Operator::Xor => {
+                    // XOR gates which combine X and Y into a intermediary value, have their output be the input to an
+                    // AND and a XOR gate (except first one).
+                    // Other XOR gates should output a Z (except for z00).
+                    if gate.input0.starts_with('x') || gate.input1.starts_with('x') {
+                        // these should not output a z
+                        let is_first = gate.input0 == "x00" || gate.input1 == "x00";
+                        if is_first {
+                            if gate.output != "z00" {
+                                to_swap.push(gate.output.clone());
+                            }
+                            continue;
+                        } else if gate.output == "z00" {
+                            to_swap.push(gate.output.clone());
+                            continue;
+                        }
+                        // the output should not be z
+                        if gate.output.starts_with('z') {
+                            to_swap.push(gate.output.clone());
+                            continue;
+                        }
+                        // the output should not be the input to an OR gate
+                        if input.gates.iter().any(|g| {
+                            (g.input0 == gate.output || g.input1 == gate.output)
+                                && g.op == Operator::Or
+                        }) {
+                            to_swap.push(gate.output.clone());
+                            continue;
+                        }
+                    } else {
+                        // these should output a z
+                        if !gate.output.starts_with('z') {
+                            to_swap.push(gate.output.clone());
+                            continue;
+                        }
+                    }
+                }
+                Operator::And => {
+                    // AND gates which combine X and Y into a value should have that value OR'd (except first one)
+                    if (gate.input0.starts_with('x') && gate.input1.starts_with('y'))
+                        || (gate.input0.starts_with('y') && gate.input1.starts_with('x'))
+                    {
+                        let is_first = gate.input0 == "x00" || gate.input1 == "x00";
+                        if !is_first
+                            && !input.gates.iter().any(|g| {
+                                (g.input0 == gate.output || g.input1 == gate.output)
+                                    && g.op == Operator::Or
+                            })
+                        {
+                            to_swap.push(gate.output.clone());
+                            continue;
+                        }
+                    }
+                }
+                Operator::Or => {}
+            }
+            // check gates which output z and make sure they are XOR (except last one)
+            if gate.output.starts_with('z') {
+                let is_last = gate.output == "z45";
+                if is_last {
+                    if gate.op != Operator::Or {
+                        to_swap.push(gate.output.clone());
+                    }
+                    continue;
+                } else if gate.op != Operator::Xor {
+                    to_swap.push(gate.output.clone());
+                    continue;
+                }
+            }
         }
-        println!("{:?}", Dot::with_config(&graph, &[Config::EdgeNoLabel]));
-
-        // let pairs_idx = (0..(input.gates.len())).tuple_combinations(); // all pairs of gates
-        // let swapped_pairs = pairs_idx.combinations(4); // pick 4 at a time
-        // let first = input.operand('x');
-        // let second = input.operand('y');
-        // for pairs in swapped_pairs {
-        //     let mut device = input.clone();
-        //     for (a, b) in &pairs {
-        //         let temp = device.gates[*a].output.clone();
-        //         device.gates[*a].output = device.gates[*b].output.clone();
-        //         device.gates[*b].output = temp;
-        //     }
-        //     let sum = device.execute();
-        //     if first + second != sum {
-        //         continue;
-        //     }
-        //     let mut outputs = Vec::new();
-        //     for (a, b) in pairs {
-        //         outputs.push(device.gates[a].output.clone());
-        //         outputs.push(device.gates[b].output.clone());
-        //     }
-        //     outputs.sort_unstable();
-        //     return outputs.join(",");
-        // }
-        "".to_string()
+        to_swap.sort_unstable();
+        to_swap.join(",")
     }
 }
