@@ -122,6 +122,10 @@ impl Day for Day24 {
     type Output2 = String;
 
     /// Part 2 took 69.5us
+    ///
+    /// By plotting the graph of the gate relationships, one quickly notices there is a repeating pattern, which
+    /// corresponds to a binary full adder. We thus know the ideal structure of the gate arrangements and can detect
+    /// output swaps by imposing a set of rules (see comments below)
     fn part_2(input: &Self::Input) -> Self::Output2 {
         let mut to_swap = Vec::new();
         for gate in &input.gates {
